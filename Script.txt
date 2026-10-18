@@ -1,0 +1,154 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local Player = Players.LocalPlayer
+
+local TOOL_NAME = "Blow Dryer"
+local MESH_ID = "rbxassetid://11712365"
+local TEXTURE_ID = "rbxassetid://11712384"
+local ICON_ID = "rbxassetid://11716958"
+local SOUND_ID = "rbxassetid://11717967"
+
+local gripPosition = Vector3.new(0.8500, -0.0500, -0.5500)
+local gripRotation = Vector3.new(85.0000, 112.0000, 0.0000)
+
+local function applyGrip(Tool)
+	Tool.Grip = CFrame.new(gripPosition) * CFrame.Angles(
+		math.rad(gripRotation.X),
+		math.rad(gripRotation.Y),
+		math.rad(gripRotation.Z)
+	)
+end
+
+local function giveTool()
+	local Backpack = Player:WaitForChild("Backpack", 5)
+	local character = Player.Character or Player.CharacterAdded:Wait()
+
+	if not Backpack then return end
+
+	if Backpack:FindFirstChild(TOOL_NAME) or (character and character:FindFirstChild(TOOL_NAME)) then
+		return
+	end
+
+	local Tool = Instance.new("Tool")
+	Tool.Name = TOOL_NAME
+	Tool.RequiresHandle = true
+	Tool.CanBeDropped = false
+	Tool.TextureId = ICON_ID
+
+	local Handle = Instance.new("MeshPart")
+	Handle.Name = "Handle"
+	Handle.MeshId = MESH_ID
+	Handle.TextureID = TEXTURE_ID
+	Handle.Size = Vector3.new(1.25, 1.25, 1.25)
+	Handle.Transparency = 0
+	Handle.CanCollide = false
+	Handle.CanTouch = false
+	Handle.CanQuery = false
+	Handle.Massless = true
+	Handle.CastShadow = false
+	Handle.Parent = Tool
+
+	local Sound = Instance.new("Sound")
+	Sound.Name = "SoundEffect"
+	Sound.SoundId = SOUND_ID
+	Sound.Volume = 1.2
+	Sound.Parent = Handle
+
+	local canUse = true
+
+	Tool.Activated:Connect(function()
+		if not canUse then return end
+		canUse = false
+
+		local char = Player.Character
+		if not char then canUse = true return end
+		local humanoidRootPart = char:FindFirstChild("HumanoidRootPart")
+		if not humanoidRootPart then canUse = true return end
+
+		Sound:Play()
+
+		local lookVector = humanoidRootPart.CFrame.LookVector
+		local impulseVector = (-lookVector * 2200) + Vector3.new(0, 1400, 0)
+		humanoidRootPart:ApplyImpulse(impulseVector)
+
+		local flightDuration = 0.85
+		local startTime = os.clock()
+		local emitTimer = 0
+
+		local connection
+		connection = RunService.Heartbeat:Connect(function(dt)
+			local elapsed = os.clock() - startTime
+			if elapsed > flightDuration or not char or not humanoidRootPart or not Handle then
+				connection:Disconnect()
+				return
+			end
+
+			emitTimer = emitTimer + dt
+			if emitTimer >= 0.04 then
+				emitTimer = 0
+
+				for i = 1, 3 do
+					local bubble = Instance.new("Part")
+					bubble.Shape = Enum.PartType.Ball
+					bubble.Material = Enum.Material.Glass
+					
+					if math.random(1, 2) == 1 then
+						bubble.Color = Color3.fromRGB(255, 255, 255)
+					else
+						bubble.Color = Color3.fromRGB(173, 216, 230)
+					end
+
+					local sizeVal = math.random(9, 17) / 10
+					bubble.Size = Vector3.new(sizeVal, sizeVal, sizeVal)
+					bubble.Transparency = 0.25
+					bubble.Reflectance = 0.25
+					bubble.Anchored = false
+					bubble.CanCollide = false
+					bubble.CanTouch = false
+					bubble.CanQuery = false
+					bubble.CastShadow = false
+
+					bubble.CFrame = Handle.CFrame * CFrame.new(math.random(-1.5, 1.5), math.random(-1.5, 1.5), math.random(-2, 0))
+					bubble.Parent = workspace
+
+					bubble.AssemblyLinearVelocity = Vector3.new(
+						math.random(-40, 40),
+						math.random(-15, 35),
+						math.random(-40, 40)
+					)
+
+					task.spawn(function()
+						local duration = 0.85
+						local startTick = os.clock()
+						local origSize = bubble.Size
+
+						while true do
+							local bElapsed = os.clock() - startTick
+							local alpha = bElapsed / duration
+							if alpha >= 1 or not bubble.Parent then
+								bubble:Destroy()
+								break
+							end
+							bubble.Transparency = 0.25 + (0.75 * alpha)
+							bubble.Size = origSize * (1 - (alpha * 0.3))
+							RunService.Heartbeat:Wait()
+						end
+					end)
+				end
+			end
+		end)
+
+		task.wait(5)
+		canUse = true
+	end)
+
+	applyGrip(Tool)
+	Tool.Parent = Backpack
+end
+
+giveTool()
+Player.CharacterAdded:Connect(function()
+	task.wait(1)
+	giveTool()
+end)
