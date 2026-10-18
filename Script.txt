@@ -21,12 +21,12 @@ local function applyGrip(Tool)
 end
 
 local function giveTool()
-	local Backpack = Player:WaitForChild("Backpack", 5)
 	local character = Player.Character or Player.CharacterAdded:Wait()
+	local backpack = Player:WaitForChild("Backpack", 10)
+	
+	if not backpack then return end
 
-	if not Backpack then return end
-
-	if Backpack:FindFirstChild(TOOL_NAME) or (character and character:FindFirstChild(TOOL_NAME)) then
+	if backpack:FindFirstChild(TOOL_NAME) or (character and character:FindFirstChild(TOOL_NAME)) then
 		return
 	end
 
@@ -144,11 +144,14 @@ local function giveTool()
 	end)
 
 	applyGrip(Tool)
-	Tool.Parent = Backpack
+	Tool.Parent = backpack
 end
 
-giveTool()
+task.spawn(function()
+	giveTool()
+end)
+
 Player.CharacterAdded:Connect(function()
-	task.wait(1)
+	task.wait(1.5)
 	giveTool()
 end)
